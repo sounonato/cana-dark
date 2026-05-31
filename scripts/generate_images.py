@@ -131,6 +131,8 @@ def generate_scene_image(
                 from google.genai import types
                 client = genai.Client(api_key=GEMINI_API_KEY)
                 model_name = os.getenv("GEMINI_IMAGE_MODEL", "imagen-3.0-generate-001")
+                if model_name == "imagen-3.0-generate-002":
+                    model_name = "imagen-3.0-generate-001"
                 
                 result = client.models.generate_images(
                     model=model_name,
