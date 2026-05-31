@@ -73,28 +73,7 @@ Responda APENAS com o JSON, sem markdown, sem explicações."""
 SCRIPT_USER_PROMPT = """Gere uma história de drama viral sobre o seguinte tema:
 "{tema}"
 
-Responda com este JSON exato:
-{{
-  "titulo": "título chamativo para o vídeo",
-  "gancho": "frase de gancho para os 2 primeiros segundos (ex: 'Gente, vocês não vão acreditar no que aconteceu...')",
-  "cenas": [
-    {{
-      "numero": 1,
-      "narracao": "texto da narração desta cena",
-      "dialogo": {{
-        "personagem": "ele ou ela",
-        "fala": "fala do personagem"
-      }},
-      "descricao_visual": "descrição detalhada do cenário e ação para gerar imagem",
-      "angulo_camera": "medium shot / close-up / wide shot",
-      "humor": "surpresa / raiva / tristeza / felicidade / choque",
-      "key_scene": false
-    }}
-  ],
-  "plot_twist": "explicação do plot twist",
-  "hashtags": ["#drama", "#casal", "#fofoca"],
-  "caption": "legenda para postar nas redes sociais"
-}}"""
+Descreva um roteiro completo de 4 a 6 cenas. Para cada cena, escreva o texto narrado da fofoca, a descrição visual detalhada do cenário e ação dos personagens para geração de imagem por IA, o ângulo da câmera, o humor predominante, e opcionalmente um diálogo dinâmico e curto entre os personagens (Léo e Pati). No final, explique o plot twist surpreendente. Adicione também um título viral chamativo, um gancho inicial forte de 2 segundos, hashtags relevantes e a legenda completa para postagem."""
 
 # ---------------------------------------------------------------------------
 # Temas de Drama (pool para rotação automática)
@@ -183,7 +162,7 @@ def generate_script(
                 contents=user_prompt,
                 config=genai.types.GenerateContentConfig(
                     system_instruction=system_prompt,
-                    temperature=0.9,
+                    temperature=0.2,
                     max_output_tokens=2048,
                     response_mime_type="application/json",
                     response_schema=Roteiro,
