@@ -1,0 +1,212 @@
+"""
+Canal Dark — Módulo 1: Geração de Roteiro
+Usa Gemini Flash (free tier) para gerar histórias de drama/fofoca viral.
+"""
+
+import json
+import os
+import uuid
+from datetime import datetime
+from pathlib import Path
+
+from dotenv import load_dotenv
+from google import genai
+
+load_dotenv()
+
+# ---------------------------------------------------------------------------
+# Configuração
+# ---------------------------------------------------------------------------
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_TEXT_MODEL = os.getenv("GEMINI_TEXT_MODEL", "gemini-2.5-flash")
+DATA_DIR = os.getenv("DATA_DIR", "./data")
+
+# ---------------------------------------------------------------------------
+# Prompt Template para Drama/Fofoca Viral
+# ---------------------------------------------------------------------------
+SCRIPT_SYSTEM_PROMPT = """Você é um roteirista especializado em vídeos curtos virais para Instagram Reels e TikTok.
+
+Seu trabalho é criar histórias CURTAS de DRAMA e FOFOCA envolvendo um casal cartoon.
+O formato é narração + diálogos curtos, com PLOT TWIST no final.
+
+REGRAS:
+1. Duração total: 30-60 segundos quando narrado (máximo ~150 palavras)
+2. Formato: 4 a 6 cenas curtas
+3. Estrutura: GANCHO forte (2 primeiras segundos) → DESENVOLVIMENTO → PLOT TWIST
+4. Linguagem: português brasileiro informal, como se estivesse contando uma fofoca
+5. Diálogos curtos e dramáticos (1-2 frases por personagem por cena)
+6. Marcar 1-2 cenas como "key_scene" (as mais dramáticas/visuais)
+7. Cada cena deve ter descrição visual clara para geração de imagem
+
+PERSONAGENS:
+- ELE: {nome_ele} — {personalidade_ele}
+- ELA: {nome_ela} — {personalidade_ela}
+
+Responda APENAS com o JSON, sem markdown, sem explicações."""
+
+SCRIPT_USER_PROMPT = """Gere uma história de drama viral sobre o seguinte tema:
+"{tema}"
+
+Responda com este JSON exato:
+{{
+  "titulo": "título chamativo para o vídeo",
+  "gancho": "frase de gancho para os 2 primeiros segundos (ex: 'Gente, vocês não vão acreditar no que aconteceu...')",
+  "cenas": [
+    {{
+      "numero": 1,
+      "narração": "texto da narração desta cena",
+      "dialogo": {{
+        "personagem": "ele ou ela",
+        "fala": "fala do personagem"
+      }},
+      "descricao_visual": "descrição detalhada do cenário e ação para gerar imagem",
+      "angulo_camera": "medium shot / close-up / wide shot",
+      "humor": "surpresa / raiva / tristeza / felicidade / choque",
+      "key_scene": false
+    }}
+  ],
+  "plot_twist": "explicação do plot twist",
+  "hashtags": ["#drama", "#casal", "#fofoca"],
+  "caption": "legenda para postar nas redes sociais"
+}}"""
+
+# ---------------------------------------------------------------------------
+# Temas de Drama (pool para rotação automática)
+# ---------------------------------------------------------------------------
+DRAMA_THEMES = [
+    "Ela descobriu uma mensagem estranha no celular dele",
+    "Ele preparou uma surpresa mas ela entendeu tudo errado",
+    "A melhor amiga dela contou um segredo sobre ele",
+    "Ele encontrou o ex dela no shopping e fingiu que não viu",
+    "Ela mentiu sobre onde estava e ele descobriu pela foto do Instagram",
+    "Ele pediu ela em namoro mas ela ouviu ele falando de outra",
+    "O vizinho novo começou a dar em cima dela e ele percebeu",
+    "Ela achou uma caixa escondida no armário dele",
+    "Ele esqueceu o aniversário dela e tentou disfarçar",
+    "Ela viu ele curtindo foto de outra e fez uma cena",
+    "A mãe dele não gosta dela e armou uma situação",
+    "Ele recebeu uma ligação misteriosa e ficou nervoso",
+    "Ela mudou a senha do WiFi e ele não sabe por quê",
+    "Ele disse que ia dormir cedo mas ela viu ele online",
+    "A prima dela deu em cima dele no churrasco da família",
+]
+
+
+def load_characters() -> dict:
+    """Carrega a configuração dos personagens."""
+    config_path = os.path.join(
+        os.getenv("CONFIG_DIR", "./config"), "characters.json"
+    )
+    with open(config_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def generate_script(
+    theme: str = None,
+    video_id: str = None,
+) -> dict:
+    """
+    Gera um roteiro de drama viral usando Gemini Flash.
+
+    Args:
+        theme: Tema da história. Se None, escolhe aleatório do pool.
+        video_id: ID do vídeo. Se None, gera UUID.
+
+    Returns:
+        Dict com roteiro completo + metadados.
+    """
+    import random
+
+    if not GEMINI_API_KEY:
+        raise ValueError("GEMINI_API_KEY não configurada no .env")
+
+    if theme is None:
+        theme = random.choice(DRAMA_THEMES)
+
+    if video_id is None:
+        video_id = datetime.now().strftime("%Y%m%d_%H%M%S") + "_" + uuid.uuid4().hex[:6]
+
+    # Carregar personagens
+    characters = load_characters()
+    him = characters["characters"]["him"]
+    her = characters["characters"]["her"]
+
+    # Montar prompts
+    system_prompt = SCRIPT_SYSTEM_PROMPT.format(
+        nome_ele=f"{him['name']} (apelido: {him.get('nickname', him['name'])})",
+        personalidade_ele="sarcástico, irônico, sempre com aquela sobrancelha levantada de 'eu já sabia disso'",
+        nome_ela=f"{her['name']} (apelido: {her.get('nickname', her['name'])})",
+        personalidade_ela="super dramática e expressiva, reage tudo com intensidade máxima, sempre com o bocão aberto de choque",
+    )
+
+    user_prompt = SCRIPT_USER_PROMPT.format(tema=theme)
+
+    # Chamar Gemini
+    client = genai.Client(api_key=GEMINI_API_KEY)
+
+    response = client.models.generate_content(
+        model=GEMINI_TEXT_MODEL,
+        contents=user_prompt,
+        config=genai.types.GenerateContentConfig(
+            system_instruction=system_prompt,
+            temperature=0.9,
+            max_output_tokens=2048,
+        ),
+    )
+
+    # Parsear resposta JSON
+    response_text = response.text.strip()
+
+    # Limpar possíveis markers de markdown
+    if response_text.startswith("```json"):
+        response_text = response_text[7:]
+    if response_text.startswith("```"):
+        response_text = response_text[3:]
+    if response_text.endswith("```"):
+        response_text = response_text[:-3]
+    response_text = response_text.strip()
+
+    try:
+        script_data = json.loads(response_text)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Gemini retornou JSON inválido: {e}\nResposta: {response_text[:500]}")
+
+    # Adicionar metadados
+    result = {
+        "video_id": video_id,
+        "theme": theme,
+        "generated_at": datetime.now().isoformat(),
+        "model": GEMINI_TEXT_MODEL,
+        "script": script_data,
+    }
+
+    # Salvar em disco
+    assets_dir = os.path.join(DATA_DIR, "assets", video_id)
+    Path(assets_dir).mkdir(parents=True, exist_ok=True)
+    script_path = os.path.join(assets_dir, "roteiro.json")
+
+    with open(script_path, "w", encoding="utf-8") as f:
+        json.dump(result, f, ensure_ascii=False, indent=2)
+
+    print(f"✅ Roteiro gerado: {script_data.get('titulo', 'sem título')}")
+    print(f"   Tema: {theme}")
+    print(f"   Cenas: {len(script_data.get('cenas', []))}")
+    print(f"   Salvo em: {script_path}")
+
+    return result
+
+
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Gerar roteiro de drama viral")
+    parser.add_argument("--theme", "-t", type=str, help="Tema da história (opcional)")
+    parser.add_argument("--id", type=str, help="ID do vídeo (opcional)")
+    args = parser.parse_args()
+
+    result = generate_script(theme=args.theme, video_id=args.id)
+    print("\n📜 Roteiro completo:")
+    print(json.dumps(result["script"], ensure_ascii=False, indent=2))

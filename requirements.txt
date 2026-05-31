@@ -1,0 +1,17 @@
+# Canal Dark — Pipeline Dependencies
+# Instalar: pip install -r requirements.txt
+
+# Google Gemini API (roteiro + imagens)
+google-genai>=1.0.0
+
+# Text-to-Speech gratuito (PT-BR)
+edge-tts>=6.1.0
+
+# Whisper otimizado para CPU (legendas - fallback)
+faster-whisper>=1.0.0
+
+# Utilitários
+python-dotenv>=1.0.0
+aiofiles>=23.0.0
+Pillow>=10.0.0
+requests>=2.31.0

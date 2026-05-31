@@ -1,0 +1,38 @@
+{
+  "style_global": "3D cartoon render style, Pixar-inspired, vibrant saturated colors, soft ambient lighting, clean smooth surfaces, expressive exaggerated features, chibi proportions (large head, small body)",
+
+  "characters": {
+    "him": {
+      "name": "Léo",
+      "nickname": "Limão",
+      "description_mother": "A male 3D cartoon character with chibi proportions. His head is a large round LEMON fruit (bright vivid yellow, slightly bumpy citrus texture skin). He has big dark brown eyes — one eyebrow always raised in a signature sarcastic or skeptical expression — a small nose, and a smirking half-smile that conveys confidence. His body is small with short arms and legs, wearing a white graphic t-shirt, dark blue jeans, and yellow-and-blue sneakers. His arms are often crossed. His overall vibe is sarcastic, ironic, and slightly smug — the type who thinks he knows everything.",
+      "voice": "pt-BR-AntonioNeural",
+      "voice_style": "calm, slightly slow, ironic tone",
+      "color_palette": ["#FFE135", "#F4C430", "#4A3728", "#1C1C2E"],
+      "seed": 33
+    },
+    "her": {
+      "name": "Pati",
+      "nickname": "Pesseguinha",
+      "description_mother": "A female 3D cartoon character with chibi proportions. Her head is a large round PEACH fruit (soft fuzzy peachy-pink skin with warm rosy blush cheeks, and a small green leaf on top like a hair accessory). She has big sparkly brown eyes with long thick eyelashes, rosy cheeks, and an expressive mouth always showing emotion — often wide open in shock or drama. Her body is small and cute, wearing a pink oversized hoodie with a tiny peach icon on it, white shorts, and pink slip-on shoes. Her overall vibe is dramatic, expressive, and emotional — she reacts to everything with maximum intensity.",
+      "voice": "pt-BR-FranciscaNeural",
+      "voice_style": "fast, emotional, emphatic tone",
+      "color_palette": ["#FFCBA4", "#FF8C69", "#E8A598", "#FFF0E8"],
+      "seed": 91
+    }
+  },
+
+  "scene_prompt_template": "{style_global}. Scene setting: {scene_description}. Characters present: {characters_in_scene}. Camera angle: {camera_angle}. Mood: {mood}. IMPORTANT — The characters must match EXACTLY these visual descriptions: {character_descriptions}. Vertical composition optimized for 9:16 phone screen. No text or letters in the image.",
+
+  "camera_angles": [
+    "medium shot, eye level, both characters visible",
+    "close-up on faces showing emotions, slight low angle",
+    "wide shot showing full scene and background",
+    "over-the-shoulder shot from her perspective looking at him",
+    "dramatic low angle looking up at the characters"
+  ],
+
+  "reference_image": "character_ref_lemon_peach_drama_1780185918595.png",
+
+  "notes": "✅ ESTILO DEFINITIVO: Limão (Léo) + Pêssego (Pati). Escolhido pelo usuário em 2026-05-30. Léo tem sobrancelha sarcástica e braços cruzados. Pati tem expressão de choque/drama com bocão aberto. Injetar a description_mother COMPLETA em TODOS os prompts de imagem para manter consistência visual."
+}
