@@ -116,7 +116,7 @@ for i in "${!SCENE_IMAGES[@]}"; do
     TOTAL_FRAMES=$(python3 -c "print(int(float('${scene_dur}') * int('${FPS:-30}')))")
 
     ffmpeg -y -loop 1 -i "$img" \
-        -vf "scale=2160:3840,zoompan=z='${ZOOM_EXPR}':x='${X_EXPR}':y='${Y_EXPR}':d=${TOTAL_FRAMES}:s=${WIDTH}x${HEIGHT}:fps=${FPS},format=yuv420p" \
+        -vf "scale=${WIDTH}:${HEIGHT},zoompan=z='${ZOOM_EXPR}':x='${X_EXPR}':y='${Y_EXPR}':d=${TOTAL_FRAMES}:s=${WIDTH}x${HEIGHT}:fps=${FPS},format=yuv420p" \
         -t "$scene_dur" \
         -c:v libx264 -preset fast -crf 23 \
         -an \
