@@ -120,16 +120,24 @@ def generate_scene_image(
 
     image_provider = os.getenv("IMAGE_PROVIDER", "google").lower()
     
-    # Tentativa 1: Google Imagen 3 (se configurado como google)
-    if image_provider == "google":
-        if not GEMINI_API_KEY:
+    # Tentativa 1: Google Imagen 3 (via AI Studio ou Vertex AI)
+    if image_provider in ("google", "vertex"):
+        if not GEMINI_API_KEY and image_provider == "google":
             print("    ⚠️  GEMINI_API_KEY nao configurada no .env. Usando fallback Pollinations.ai...")
         else:
             try:
-                print(f"    Tentando gerar imagem {scene_index} com Google Imagen 3...")
+                print(f"    Tentando gerar imagem {scene_index} com Google Imagen 3 ({image_provider})...")
                 from google import genai
                 from google.genai import types
-                client = genai.Client(api_key=GEMINI_API_KEY)
+                
+                if image_provider == "vertex":
+                    project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
+                    if not project_id:
+                        raise ValueError("GOOGLE_CLOUD_PROJECT nao configurado no .env")
+                    client = genai.Client(vertexai=True, project=project_id, location="us-central1")
+                else:
+                    client = genai.Client(api_key=GEMINI_API_KEY)
+                    
                 model_name = os.getenv("GEMINI_IMAGE_MODEL", "imagen-3.0-generate-001")
                 if model_name == "imagen-3.0-generate-002":
                     model_name = "imagen-3.0-generate-001"
