@@ -8,9 +8,11 @@ import os
 import uuid
 from datetime import datetime
 from pathlib import Path
+from typing import List, Optional
 
 from dotenv import load_dotenv
 from google import genai
+from pydantic import BaseModel, Field
 
 load_dotenv()
 
@@ -20,6 +22,30 @@ load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_TEXT_MODEL = os.getenv("GEMINI_TEXT_MODEL", "gemini-2.5-flash")
 DATA_DIR = os.getenv("DATA_DIR", "./data")
+
+# ---------------------------------------------------------------------------
+# Pydantic Schemas para Structured Output
+# ---------------------------------------------------------------------------
+class Dialogo(BaseModel):
+    personagem: str = Field(description="O personagem que está falando: 'Léo' ou 'Pati'")
+    fala: str = Field(description="A fala dramática do personagem")
+
+class Cena(BaseModel):
+    numero: int = Field(description="O número da cena (1, 2, 3...)")
+    narracao: str = Field(alias="narração", description="Texto da narração desta cena")
+    dialogo: Optional[Dialogo] = Field(default=None, description="Diálogo opcional do personagem na cena")
+    descricao_visual: str = Field(description="Descrição detalhada em português do cenário e ação dos personagens para gerar imagem por IA")
+    angulo_camera: str = Field(description="Ângulo da câmera: medium shot / close-up / wide shot")
+    humor: str = Field(description="Humor predominante: surpresa / raiva / tristeza / felicidade / choque")
+    key_scene: bool = Field(description="Se esta é uma cena de destaque visual/dramático")
+
+class Roteiro(BaseModel):
+    titulo: str = Field(description="Título chamativo para o vídeo")
+    gancho: str = Field(description="Frase de gancho para os 2 primeiros segundos do vídeo")
+    cenas: List[Cena] = Field(description="Cenas sequenciais do vídeo")
+    plot_twist: str = Field(description="Explicação do plot twist no final da história")
+    hashtags: List[str] = Field(description="Lista com 3 a 5 hashtags relevantes")
+    caption: str = Field(description="Legenda engajadora para postar nas redes sociais")
 
 # ---------------------------------------------------------------------------
 # Prompt Template para Drama/Fofoca Viral
@@ -151,25 +177,21 @@ def generate_script(
             system_instruction=system_prompt,
             temperature=0.9,
             max_output_tokens=2048,
+            response_mime_type="application/json",
+            response_schema=Roteiro,
         ),
     )
 
     # Parsear resposta JSON
     response_text = response.text.strip()
 
-    # Limpar possíveis markers de markdown
-    if response_text.startswith("```json"):
-        response_text = response_text[7:]
-    if response_text.startswith("```"):
-        response_text = response_text[3:]
-    if response_text.endswith("```"):
-        response_text = response_text[:-3]
-    response_text = response_text.strip()
-
     try:
-        script_data = json.loads(response_text)
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Gemini retornou JSON inválido: {e}\nResposta: {response_text[:500]}")
+        # Validar e serializar usando Pydantic para garantir formato 100% correto
+        # by_alias=True garante que o campo 'narracao' seja serializado como 'narração'
+        validated_roteiro = Roteiro.model_validate(json.loads(response_text))
+        script_data = validated_roteiro.model_dump(by_alias=True)
+    except Exception as e:
+        raise ValueError(f"Erro ao parsear/validar roteiro estruturado do Gemini: {e}\nResposta original: {response_text}")
 
     # Adicionar metadados
     result = {
