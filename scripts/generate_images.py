@@ -4,21 +4,19 @@ Usa Gemini Flash Image (free tier) ou Imagen 4 Fast (pago).
 Injeta DESCRIÇÃO-MÃE dos personagens em cada prompt de cena.
 """
 
-import base64
 import json
 import os
+import time
+import urllib.parse
+import urllib.request
 from pathlib import Path
 
 from dotenv import load_dotenv
-from google import genai
 
 load_dotenv()
 
 # ---------------------------------------------------------------------------
-# Configuração
-# ---------------------------------------------------------------------------
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_IMAGE_MODEL = os.getenv("GEMINI_IMAGE_MODEL", "imagen-3.0-generate-002")
 DATA_DIR = os.getenv("DATA_DIR", "./data")
 
 
@@ -100,9 +98,6 @@ def generate_scene_image(
     Returns:
         Path da imagem salva.
     """
-    if not GEMINI_API_KEY:
-        raise ValueError("GEMINI_API_KEY não configurada no .env")
-
     if characters is None:
         characters = load_characters()
 
@@ -119,27 +114,31 @@ def generate_scene_image(
     # Construir prompt
     prompt = build_image_prompt(scene, characters, characters_in_scene)
 
-    # Chamar Imagen 3 com mecanismo de retry e exponential backoff
-    client = genai.Client(api_key=GEMINI_API_KEY)
+    # URL encode do prompt para o Pollinations.ai
+    encoded_prompt = urllib.parse.quote(prompt)
+    
+    # URL do Pollinations.ai (usando Flux por padrão para altíssima qualidade 3D cartoon e 9:16)
+    url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1080&height=1920&nologo=true&private=true&model=flux"
 
-    import time
+    # Chamar Pollinations com mecanismo de retry e exponential backoff
     max_retries = 5
     base_delay = 2  # 2s, 4s, 8s, 16s, 32s
-    response = None
+    image_bytes = None
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+    }
 
     for attempt in range(max_retries):
         try:
-            print(f"    Tentativa {attempt + 1}/{max_retries} de gerar imagem com Imagen...")
-            response = client.models.generate_images(
-                model=GEMINI_IMAGE_MODEL,
-                prompt=prompt,
-                config=dict(
-                    number_of_images=1,
-                    output_mime_type="image/png",
-                    aspect_ratio="9:16",
-                )
-            )
-            break  # Sucesso!
+            print(f"    Tentativa {attempt + 1}/{max_retries} de gerar imagem com Pollinations (Flux)...")
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=45) as response:
+                if response.status == 200:
+                    image_bytes = response.read()
+                    break
+                else:
+                    raise Exception(f"HTTP Status {response.status}")
         except Exception as e:
             error_msg = str(e)
             print(f"    ⚠️ Tentativa {attempt + 1} falhou: {error_msg}")
@@ -149,13 +148,10 @@ def generate_scene_image(
             print(f"    ⏳ Aguardando {delay} segundos antes de tentar novamente...")
             time.sleep(delay)
 
-    # Extrair bytes da imagem gerada
-    try:
-        image_bytes = response.generated_images[0].image.image_bytes
-    except Exception as e:
-        raise ValueError(f"Gemini/Imagen não retornou imagem para a cena {scene_index}: {e}")
+    if not image_bytes:
+        raise ValueError(f"Não foi possível obter imagem para a cena {scene_index}")
 
-    # Salvar imagem (sempre PNG conforme configurado na API do Imagen)
+    # Salvar imagem (sempre PNG conforme configurado no Pollinations)
     ext = "png"
     assets_dir = os.path.join(DATA_DIR, "assets", video_id)
     Path(assets_dir).mkdir(parents=True, exist_ok=True)
@@ -163,6 +159,9 @@ def generate_scene_image(
 
     with open(image_path, "wb") as f:
         f.write(image_bytes)
+
+    print(f"  🖼️  Cena {scene_index} salva: {image_path}")
+    return image_path
 
     print(f"  🖼️  Cena {scene_index} salva: {image_path}")
     return image_path
