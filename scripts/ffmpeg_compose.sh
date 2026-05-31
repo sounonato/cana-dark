@@ -137,7 +137,7 @@ echo "🔗 Concatenando ${#SCENE_CLIPS[@]} clipes..."
 CONCAT_LIST="${ASSETS_DIR}/concat_list.txt"
 > "$CONCAT_LIST"
 for clip in "${SCENE_CLIPS[@]}"; do
-    echo "file '${clip}'" >> "$CONCAT_LIST"
+    echo "file '${clip##*/}'" >> "$CONCAT_LIST"
 done
 
 CONCAT_VIDEO="${ASSETS_DIR}/concat_video.mp4"
@@ -159,7 +159,7 @@ AUDIO_CONCAT_LIST="${ASSETS_DIR}/audio_concat_list.txt"
 
 # Gancho primeiro (se existir)
 if [ -f "$GANCHO_VOICE" ]; then
-    echo "file '${GANCHO_VOICE}'" >> "$AUDIO_CONCAT_LIST"
+    echo "file '${GANCHO_VOICE##*/}'" >> "$AUDIO_CONCAT_LIST"
 fi
 
 # Depois, para cada cena: narração + diálogo
@@ -169,8 +169,8 @@ for i in "${!SCENE_IMAGES[@]}"; do
     narr_file="${ASSETS_DIR}/voice_narr_${scene_num_padded}.mp3"
     dial_file="${ASSETS_DIR}/voice_dial_${scene_num_padded}.mp3"
 
-    [ -f "$narr_file" ] && echo "file '${narr_file}'" >> "$AUDIO_CONCAT_LIST"
-    [ -f "$dial_file" ] && echo "file '${dial_file}'" >> "$AUDIO_CONCAT_LIST"
+    [ -f "$narr_file" ] && echo "file '${narr_file##*/}'" >> "$AUDIO_CONCAT_LIST"
+    [ -f "$dial_file" ] && echo "file '${dial_file##*/}'" >> "$AUDIO_CONCAT_LIST"
 done
 
 CONCAT_AUDIO="${ASSETS_DIR}/concat_audio.mp3"
