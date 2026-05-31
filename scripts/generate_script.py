@@ -189,7 +189,12 @@ def generate_script(
                     response_schema=Roteiro,
                 ),
             )
-            break  # Sucesso!
+            
+            # Parsear e validar imediatamente dentro do try para forçar retry se falhar
+            response_text = response.text.strip()
+            validated_roteiro = Roteiro.model_validate(json.loads(response_text))
+            script_data = validated_roteiro.model_dump(by_alias=True)
+            break  # Sucesso total!
         except Exception as e:
             error_msg = str(e)
             print(f"  ⚠️ Tentativa {attempt + 1} falhou: {error_msg}")
@@ -198,17 +203,6 @@ def generate_script(
             delay = base_delay * (2 ** attempt)
             print(f"  ⏳ Aguardando {delay} segundos antes de tentar novamente...")
             time.sleep(delay)
-
-    # Parsear resposta JSON
-    response_text = response.text.strip()
-
-    try:
-        # Validar e serializar usando Pydantic para garantir formato 100% correto
-        # by_alias=True garante que o campo 'narracao' seja serializado como 'narração'
-        validated_roteiro = Roteiro.model_validate(json.loads(response_text))
-        script_data = validated_roteiro.model_dump(by_alias=True)
-    except Exception as e:
-        raise ValueError(f"Erro ao parsear/validar roteiro estruturado do Gemini: {e}\nResposta original: {response_text}")
 
     # Adicionar metadados
     result = {
