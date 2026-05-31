@@ -27,23 +27,23 @@ DATA_DIR = os.getenv("DATA_DIR", "./data")
 # Pydantic Schemas para Structured Output
 # ---------------------------------------------------------------------------
 class Dialogo(BaseModel):
-    personagem: str = Field(description="O personagem que está falando: 'Léo' ou 'Pati'")
-    fala: str = Field(description="A fala dramática do personagem")
+    personagem: str = Field(description="O personagem que esta falando: 'Leo' ou 'Pati'")
+    fala: str = Field(description="A fala dramatica do personagem")
 
 class Cena(BaseModel):
-    numero: int = Field(description="O número da cena (1, 2, 3...)")
-    narracao: str = Field(description="Texto da narração desta cena")
-    dialogo: Optional[Dialogo] = Field(default=None, description="Diálogo opcional do personagem na cena")
-    descricao_visual: str = Field(description="Descrição detalhada em português do cenário e ação dos personagens para gerar imagem por IA")
-    angulo_camera: str = Field(description="Ângulo da câmera: medium shot / close-up / wide shot")
+    numero: int = Field(description="O numero da cena (1, 2, 3...)")
+    narracao: str = Field(description="Texto da narracao desta cena")
+    dialogo: Optional[Dialogo] = Field(default=None, description="Dialogo opcional do personagem na cena")
+    descricao_visual: str = Field(description="Descricao detalhada em portugues do cenario e acao dos personagens para gerar imagem por IA")
+    angulo_camera: str = Field(description="Angulo da camera: medium shot / close-up / wide shot")
     humor: str = Field(description="Humor predominante: surpresa / raiva / tristeza / felicidade / choque")
-    key_scene: bool = Field(description="Se esta é uma cena de destaque visual/dramático")
+    key_scene: bool = Field(description="Se esta e uma cena de destaque visual ou dramatica")
 
 class Roteiro(BaseModel):
-    titulo: str = Field(description="Título chamativo para o vídeo")
-    gancho: str = Field(description="Frase de gancho para os 2 primeiros segundos do vídeo")
-    cenas: List[Cena] = Field(description="Cenas sequenciais do vídeo")
-    plot_twist: str = Field(description="Explicação do plot twist no final da história")
+    titulo: str = Field(description="Titulo chamativo para o video")
+    gancho: str = Field(description="Frase de gancho para os 2 primeiros segundos do video")
+    cenas: List[Cena] = Field(description="Cenas sequenciais do video")
+    plot_twist: str = Field(description="Explicacao do plot twist no final da historia")
     hashtags: List[str] = Field(description="Lista com 3 a 5 hashtags relevantes")
     caption: str = Field(description="Legenda engajadora para postar nas redes sociais")
 
@@ -66,9 +66,7 @@ REGRAS:
 
 PERSONAGENS:
 - ELE: {nome_ele} — {personalidade_ele}
-- ELA: {nome_ela} — {personalidade_ela}
-
-Responda APENAS com o JSON, sem markdown, sem explicações."""
+- ELA: {nome_ela} — {personalidade_ela}"""
 
 SCRIPT_USER_PROMPT = """Gere uma história de drama viral sobre o seguinte tema:
 "{tema}"
@@ -163,7 +161,7 @@ def generate_script(
                 config=genai.types.GenerateContentConfig(
                     system_instruction=system_prompt,
                     temperature=0.2,
-                    max_output_tokens=2048,
+                    max_output_tokens=8192,
                     response_mime_type="application/json",
                     response_schema=Roteiro,
                 ),
