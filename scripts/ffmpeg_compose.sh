@@ -38,11 +38,11 @@ echo "   Output: ${OUTPUT_DIR}"
 SCENE_IMAGES=()
 VOICE_FILES=()
 
-for img in "${ASSETS_DIR}"/scene_*.{png,jpg,webp} 2>/dev/null; do
+for img in "${ASSETS_DIR}"/scene_*.png "${ASSETS_DIR}"/scene_*.jpg "${ASSETS_DIR}"/scene_*.webp; do
     [ -f "$img" ] && SCENE_IMAGES+=("$img")
 done
 
-for voice in "${ASSETS_DIR}"/voice_*.mp3 2>/dev/null; do
+for voice in "${ASSETS_DIR}"/voice_*.mp3; do
     [ -f "$voice" ] && VOICE_FILES+=("$voice")
 done
 

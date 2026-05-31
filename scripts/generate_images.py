@@ -18,7 +18,7 @@ load_dotenv()
 # Configuração
 # ---------------------------------------------------------------------------
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_IMAGE_MODEL = os.getenv("GEMINI_IMAGE_MODEL", "gemini-2.0-flash-exp")
+GEMINI_IMAGE_MODEL = os.getenv("GEMINI_IMAGE_MODEL", "imagen-3.0-generate-002")
 DATA_DIR = os.getenv("DATA_DIR", "./data")
 
 
@@ -119,7 +119,7 @@ def generate_scene_image(
     # Construir prompt
     prompt = build_image_prompt(scene, characters, characters_in_scene)
 
-    # Chamar Gemini Image com mecanismo de retry e exponential backoff
+    # Chamar Imagen 3 com mecanismo de retry e exponential backoff
     client = genai.Client(api_key=GEMINI_API_KEY)
 
     import time
@@ -129,13 +129,15 @@ def generate_scene_image(
 
     for attempt in range(max_retries):
         try:
-            print(f"    Tentativa {attempt + 1}/{max_retries} de gerar imagem com Gemini...")
-            response = client.models.generate_content(
+            print(f"    Tentativa {attempt + 1}/{max_retries} de gerar imagem com Imagen...")
+            response = client.models.generate_images(
                 model=GEMINI_IMAGE_MODEL,
-                contents=prompt,
-                config=genai.types.GenerateContentConfig(
-                    response_modalities=["image", "text"],
-                ),
+                prompt=prompt,
+                config=dict(
+                    number_of_images=1,
+                    output_mime_type="image/png",
+                    aspect_ratio="9:16",
+                )
             )
             break  # Sucesso!
         except Exception as e:
@@ -147,34 +149,17 @@ def generate_scene_image(
             print(f"    ⏳ Aguardando {delay} segundos antes de tentar novamente...")
             time.sleep(delay)
 
-    # Extrair imagem da resposta
-    image_data = None
-    for part in response.candidates[0].content.parts:
-        if part.inline_data is not None:
-            image_data = part.inline_data.data
-            mime_type = part.inline_data.mime_type
-            break
+    # Extrair bytes da imagem gerada
+    try:
+        image_bytes = response.generated_images[0].image.image_bytes
+    except Exception as e:
+        raise ValueError(f"Gemini/Imagen não retornou imagem para a cena {scene_index}: {e}")
 
-    if image_data is None:
-        raise ValueError(f"Gemini não retornou imagem para a cena {scene_index}")
-
-    # Determinar extensão
+    # Salvar imagem (sempre PNG conforme configurado na API do Imagen)
     ext = "png"
-    if mime_type and "jpeg" in mime_type:
-        ext = "jpg"
-    elif mime_type and "webp" in mime_type:
-        ext = "webp"
-
-    # Salvar imagem
     assets_dir = os.path.join(DATA_DIR, "assets", video_id)
     Path(assets_dir).mkdir(parents=True, exist_ok=True)
     image_path = os.path.join(assets_dir, f"scene_{scene_index:02d}.{ext}")
-
-    # image_data pode ser bytes ou base64 string
-    if isinstance(image_data, str):
-        image_bytes = base64.b64decode(image_data)
-    else:
-        image_bytes = image_data
 
     with open(image_path, "wb") as f:
         f.write(image_bytes)
