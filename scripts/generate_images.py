@@ -87,8 +87,7 @@ def generate_scene_image(
     characters: dict = None,
 ) -> str:
     """
-    Gera uma imagem para uma cena do roteiro.
-    Suporta Google (Imagen 3) e Pollinations.ai (Flux) com fallback automatico.
+    Gera uma imagem para uma cena do roteiro usando Pollinations.ai (Flux) com maxima qualidade.
 
     Args:
         scene: Dict da cena (do roteiro JSON).
@@ -102,6 +101,14 @@ def generate_scene_image(
     if characters is None:
         characters = load_characters()
 
+    assets_dir = os.path.join(DATA_DIR, "assets", video_id)
+    Path(assets_dir).mkdir(parents=True, exist_ok=True)
+    image_path = os.path.join(assets_dir, f"scene_{scene_index:02d}.png")
+    
+    if os.path.exists(image_path):
+        print(f"  ⏭️  Imagem da cena {scene_index} ja existe.")
+        return image_path
+
     # Determinar quais personagens estao na cena
     characters_in_scene = ["him", "her"]  # Padrao: ambos
     dialogo = scene.get("dialogo", {})
@@ -113,99 +120,45 @@ def generate_scene_image(
             characters_in_scene = ["her"]
 
     # Construir prompt
-    prompt = build_image_prompt(scene, characters, characters_in_scene)
-    image_bytes = None
-    provider_used = "pollinations"
-    ext = "png"
-
-    image_provider = os.getenv("IMAGE_PROVIDER", "google").lower()
+    base_prompt = build_image_prompt(scene, characters, characters_in_scene)
     
-    # Tentativa 1: Google Imagen 3 (via AI Studio ou Vertex AI)
-    if image_provider in ("google", "vertex"):
-        if not GEMINI_API_KEY and image_provider == "google":
-            print("    ⚠️  GEMINI_API_KEY nao configurada no .env. Usando fallback Pollinations.ai...")
-        else:
-            try:
-                print(f"    Tentando gerar imagem {scene_index} com Google Imagen 3 ({image_provider})...")
-                from google import genai
-                from google.genai import types
-                
-                if image_provider == "vertex":
-                    project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
-                    if not project_id:
-                        raise ValueError("GOOGLE_CLOUD_PROJECT nao configurado no .env")
-                    client = genai.Client(vertexai=True, project=project_id, location="us-central1")
-                else:
-                    client = genai.Client(api_key=GEMINI_API_KEY)
-                    
-                model_name = os.getenv("GEMINI_IMAGE_MODEL", "imagen-3.0-generate-001")
-                if model_name == "imagen-3.0-generate-002":
-                    model_name = "imagen-3.0-generate-001"
-                
-                result = client.models.generate_images(
-                    model=model_name,
-                    prompt=prompt,
-                    config=types.GenerateImagesConfig(
-                        number_of_images=1,
-                        output_mime_type="image/jpeg",
-                        aspect_ratio="9:16",
-                    )
-                )
-                
-                if result and result.generated_images:
-                    image_bytes = result.generated_images[0].image.image_bytes
-                    provider_used = "google"
-                    ext = "jpg"
-                    print(f"    ✅ Imagem gerada com sucesso via Google ({model_name})!")
-                else:
-                    raise ValueError("Nenhuma imagem retornada pelo Google Imagen 3")
-            except Exception as e:
-                print(f"    ⚠️ Falha no Google Imagen 3: {e}")
-                print("    ⏳ Ativando fallback automatico para Pollinations.ai (Flux)...")
+    # Otimizacao extrema para FLUX
+    prompt = f"{base_prompt} Masterpiece, 8k resolution, highly detailed, cinematic lighting, vivid colors, Unreal Engine 5 render, perfect composition. No text, no words."
+    
+    encoded_prompt = urllib.parse.quote(prompt)
+    url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1080&height=1920&nologo=true&private=true&model=flux&enhance=true"
 
-    # Tentativa 2: Pollinations.ai (se configurado como pollinations ou se Google falhou)
-    if not image_bytes:
-        encoded_prompt = urllib.parse.quote(prompt)
-        url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1080&height=1920&nologo=true&private=true&model=flux"
-        
-        max_retries = 5
-        base_delay = 2
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
-        }
+    max_retries = 5
+    base_delay = 2
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+    
+    image_bytes = None
 
-        for attempt in range(max_retries):
-            try:
-                print(f"    Tentativa {attempt + 1}/{max_retries} de gerar imagem com Pollinations (Flux)...")
-                req = urllib.request.Request(url, headers=headers)
-                with urllib.request.urlopen(req, timeout=45) as response:
-                    if response.status == 200:
-                        image_bytes = response.read()
-                        provider_used = "pollinations"
-                        ext = "png"
-                        break
-                    else:
-                        raise Exception(f"HTTP Status {response.status}")
-            except Exception as e:
-                print(f"    ⚠️ Tentativa {attempt + 1} falhou: {e}")
-                if attempt == max_retries - 1:
-                    raise e
-                delay = base_delay * (2 ** attempt)
-                print(f"    ⏳ Aguardando {delay} segundos antes de tentar novamente...")
-                time.sleep(delay)
+    for attempt in range(max_retries):
+        try:
+            print(f"  ⏳ Tentativa {attempt + 1}/{max_retries} de gerar imagem {scene_index} com Pollinations (Flux)...")
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=45) as response:
+                if response.status == 200:
+                    image_bytes = response.read()
+                    break
+                else:
+                    raise Exception(f"HTTP Status {response.status}")
+        except Exception as e:
+            print(f"    ⚠️ Tentativa {attempt + 1} falhou: {e}")
+            if attempt == max_retries - 1:
+                raise e
+            delay = base_delay * (2 ** attempt)
+            print(f"    ⏳ Aguardando {delay} segundos antes de tentar novamente...")
+            time.sleep(delay)
 
     if not image_bytes:
         raise ValueError(f"Não foi possível obter imagem para a cena {scene_index}")
 
-    # Salvar imagem
-    assets_dir = os.path.join(DATA_DIR, "assets", video_id)
-    Path(assets_dir).mkdir(parents=True, exist_ok=True)
-    image_path = os.path.join(assets_dir, f"scene_{scene_index:02d}.{ext}")
-
     with open(image_path, "wb") as f:
         f.write(image_bytes)
 
-    print(f"  🖼️  Cena {scene_index} salva ({provider_used}): {image_path}")
+    print(f"  ✅ Cena {scene_index} salva (pollinations): {image_path}")
     return image_path
 
 

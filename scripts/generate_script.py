@@ -50,48 +50,44 @@ class Roteiro(BaseModel):
 # ---------------------------------------------------------------------------
 # Prompt Template para Drama/Fofoca Viral
 # ---------------------------------------------------------------------------
-SCRIPT_SYSTEM_PROMPT = """Você é um roteirista especializado em vídeos curtos virais para Instagram Reels e TikTok.
+SCRIPT_SYSTEM_PROMPT = """Você é um roteirista cristão especializado em vídeos curtos virais (Reels/TikTok) de evangelização.
 
-Seu trabalho é criar histórias CURTAS de DRAMA e FOFOCA envolvendo um casal cartoon.
-O formato é narração + diálogos curtos, com PLOT TWIST no final.
+Seu trabalho é criar histórias CURTAS de TESTEMUNHO, FÉ e PRINCÍPIOS BÍBLICOS envolvendo um casal cartoon.
+O formato é narração + diálogos curtos, focando em mensagens de esperança, perdão, oração ou milagres.
 
 REGRAS:
 1. Duração total: 30-60 segundos quando narrado (máximo ~150 palavras)
 2. Formato: 4 a 6 cenas curtas
-3. Estrutura: GANCHO forte (2 primeiras segundos) → DESENVOLVIMENTO → PLOT TWIST
-4. Linguagem: português brasileiro informal, como se estivesse contando uma fofoca
-5. Diálogos curtos e dramáticos (1-2 frases por personagem por cena)
-6. Marcar 1-2 cenas como "key_scene" (as mais dramáticas/visuais)
+3. Estrutura: GANCHO forte (2 primeiros segundos) → DESAFIOS/DÚVIDAS → SOLUÇÃO EM CRISTO/FÉ
+4. Linguagem: português brasileiro coloquial, empático e inspirador
+5. Diálogos curtos (1-2 frases por personagem por cena). Ele costuma ser mais cético/prático e ela mais sensível/espiritual.
+6. Marcar 1-2 cenas como "key_scene" (as mais impactantes visualmente ou de oração)
 7. Cada cena deve ter descrição visual clara para geração de imagem
+8. O "plot twist" final deve ser uma lição bíblica, um versículo prático ou um milagre cotidiano.
 
 PERSONAGENS:
 - ELE: {nome_ele} — {personalidade_ele}
 - ELA: {nome_ela} — {personalidade_ela}"""
 
-SCRIPT_USER_PROMPT = """Gere uma história de drama viral sobre o seguinte tema:
+SCRIPT_USER_PROMPT = """Gere uma história cristã de evangelização sobre o seguinte tema:
 "{tema}"
 
-Descreva um roteiro completo de 4 a 6 cenas. Para cada cena, escreva o texto narrado da fofoca, a descrição visual detalhada do cenário e ação dos personagens para geração de imagem por IA, o ângulo da câmera, o humor predominante, e opcionalmente um diálogo dinâmico e curto entre os personagens (Léo e Pati). No final, explique o plot twist surpreendente. Adicione também um título viral chamativo, um gancho inicial forte de 2 segundos, hashtags relevantes e a legenda completa para postagem."""
+Descreva um roteiro completo de 4 a 6 cenas. Para cada cena, escreva o texto narrado, a descrição visual detalhada do cenário e ação dos personagens, o ângulo da câmera, o humor predominante, e opcionalmente um diálogo inspirador entre Léo e Pati. No final, explique a lição de fé. Adicione também um título viral, um gancho inicial forte de 2 segundos, hashtags (#Fe #Deus #Proposito etc.) e a legenda completa para postagem."""
 
 # ---------------------------------------------------------------------------
 # Temas de Drama (pool para rotação automática)
 # ---------------------------------------------------------------------------
-DRAMA_THEMES = [
-    "Ela descobriu uma mensagem estranha no celular dele",
-    "Ele preparou uma surpresa mas ela entendeu tudo errado",
-    "A melhor amiga dela contou um segredo sobre ele",
-    "Ele encontrou o ex dela no shopping e fingiu que não viu",
-    "Ela mentiu sobre onde estava e ele descobriu pela foto do Instagram",
-    "Ele pediu ela em namoro mas ela ouviu ele falando de outra",
-    "O vizinho novo começou a dar em cima dela e ele percebeu",
-    "Ela achou uma caixa escondida no armário dele",
-    "Ele esqueceu o aniversário dela e tentou disfarçar",
-    "Ela viu ele curtindo foto de outra e fez uma cena",
-    "A mãe dele não gosta dela e armou uma situação",
-    "Ele recebeu uma ligação misteriosa e ficou nervoso",
-    "Ela mudou a senha do WiFi e ele não sabe por quê",
-    "Ele disse que ia dormir cedo mas ela viu ele online",
-    "A prima dela deu em cima dele no churrasco da família",
+FAITH_THEMES = [
+    "Ele perdeu o emprego e ela o chamou para orar de madrugada",
+    "Eles quase terminaram, mas uma palavra na igreja restaurou o casamento",
+    "Ele duvidava dos planos de Deus, até receber um livramento no trânsito",
+    "Ela estava ansiosa com o futuro, e ele leu Mateus 6 para ela",
+    "Eles decidiram perdoar alguém que os magoou profundamente",
+    "Eles entregaram um prato de comida e a resposta que ouviram os fez chorar",
+    "Ela acordou triste, mas um louvor mudou completamente a atmosfera",
+    "Ele queria desistir de um sonho, até que sentiu o Espírito Santo falar ao coração",
+    "Eles leram a Bíblia juntos pela primeira vez e algo incrível aconteceu",
+    "A oração que eles fizeram há anos finalmente foi respondida hoje",
 ]
 
 
@@ -124,7 +120,7 @@ def generate_script(
         raise ValueError("GEMINI_API_KEY não configurada no .env")
 
     if theme is None:
-        theme = random.choice(DRAMA_THEMES)
+        theme = random.choice(FAITH_THEMES)
 
     if video_id is None:
         video_id = datetime.now().strftime("%Y%m%d_%H%M%S") + "_" + uuid.uuid4().hex[:6]
@@ -137,9 +133,9 @@ def generate_script(
     # Montar prompts
     system_prompt = SCRIPT_SYSTEM_PROMPT.format(
         nome_ele=f"{him['name']} (apelido: {him.get('nickname', him['name'])})",
-        personalidade_ele="sarcástico, irônico, sempre com aquela sobrancelha levantada de 'eu já sabia disso'",
+        personalidade_ele="cético inicialmente, mas de coração aberto, muito prático e protetor",
         nome_ela=f"{her['name']} (apelido: {her.get('nickname', her['name'])})",
-        personalidade_ela="super dramática e expressiva, reage tudo com intensidade máxima, sempre com o bocão aberto de choque",
+        personalidade_ela="sensível, cheia de fé, emocionada pelas coisas de Deus e que adora orar",
     )
 
     user_prompt = SCRIPT_USER_PROMPT.format(tema=theme)
