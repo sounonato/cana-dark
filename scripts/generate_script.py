@@ -32,7 +32,7 @@ class Dialogo(BaseModel):
 
 class Cena(BaseModel):
     numero: int = Field(description="O número da cena (1, 2, 3...)")
-    narracao: str = Field(alias="narração", description="Texto da narração desta cena")
+    narracao: str = Field(description="Texto da narração desta cena")
     dialogo: Optional[Dialogo] = Field(default=None, description="Diálogo opcional do personagem na cena")
     descricao_visual: str = Field(description="Descrição detalhada em português do cenário e ação dos personagens para gerar imagem por IA")
     angulo_camera: str = Field(description="Ângulo da câmera: medium shot / close-up / wide shot")
@@ -80,7 +80,7 @@ Responda com este JSON exato:
   "cenas": [
     {{
       "numero": 1,
-      "narração": "texto da narração desta cena",
+      "narracao": "texto da narração desta cena",
       "dialogo": {{
         "personagem": "ele ou ela",
         "fala": "fala do personagem"
