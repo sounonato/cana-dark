@@ -119,16 +119,33 @@ def generate_scene_image(
     # Construir prompt
     prompt = build_image_prompt(scene, characters, characters_in_scene)
 
-    # Chamar Gemini Image
+    # Chamar Gemini Image com mecanismo de retry e exponential backoff
     client = genai.Client(api_key=GEMINI_API_KEY)
 
-    response = client.models.generate_content(
-        model=GEMINI_IMAGE_MODEL,
-        contents=prompt,
-        config=genai.types.GenerateContentConfig(
-            response_modalities=["image", "text"],
-        ),
-    )
+    import time
+    max_retries = 5
+    base_delay = 2  # 2s, 4s, 8s, 16s, 32s
+    response = None
+
+    for attempt in range(max_retries):
+        try:
+            print(f"    Tentativa {attempt + 1}/{max_retries} de gerar imagem com Gemini...")
+            response = client.models.generate_content(
+                model=GEMINI_IMAGE_MODEL,
+                contents=prompt,
+                config=genai.types.GenerateContentConfig(
+                    response_modalities=["image", "text"],
+                ),
+            )
+            break  # Sucesso!
+        except Exception as e:
+            error_msg = str(e)
+            print(f"    ⚠️ Tentativa {attempt + 1} falhou: {error_msg}")
+            if attempt == max_retries - 1:
+                raise e
+            delay = base_delay * (2 ** attempt)
+            print(f"    ⏳ Aguardando {delay} segundos antes de tentar novamente...")
+            time.sleep(delay)
 
     # Extrair imagem da resposta
     image_data = None

@@ -167,20 +167,37 @@ def generate_script(
 
     user_prompt = SCRIPT_USER_PROMPT.format(tema=theme)
 
-    # Chamar Gemini
+    # Chamar Gemini com mecanismo de retry e exponential backoff
     client = genai.Client(api_key=GEMINI_API_KEY)
 
-    response = client.models.generate_content(
-        model=GEMINI_TEXT_MODEL,
-        contents=user_prompt,
-        config=genai.types.GenerateContentConfig(
-            system_instruction=system_prompt,
-            temperature=0.9,
-            max_output_tokens=2048,
-            response_mime_type="application/json",
-            response_schema=Roteiro,
-        ),
-    )
+    import time
+    max_retries = 5
+    base_delay = 2  # 2s, 4s, 8s, 16s, 32s
+    response = None
+
+    for attempt in range(max_retries):
+        try:
+            print(f"Tentativa {attempt + 1}/{max_retries} de gerar roteiro com Gemini...")
+            response = client.models.generate_content(
+                model=GEMINI_TEXT_MODEL,
+                contents=user_prompt,
+                config=genai.types.GenerateContentConfig(
+                    system_instruction=system_prompt,
+                    temperature=0.9,
+                    max_output_tokens=2048,
+                    response_mime_type="application/json",
+                    response_schema=Roteiro,
+                ),
+            )
+            break  # Sucesso!
+        except Exception as e:
+            error_msg = str(e)
+            print(f"  ⚠️ Tentativa {attempt + 1} falhou: {error_msg}")
+            if attempt == max_retries - 1:
+                raise e
+            delay = base_delay * (2 ** attempt)
+            print(f"  ⏳ Aguardando {delay} segundos antes de tentar novamente...")
+            time.sleep(delay)
 
     # Parsear resposta JSON
     response_text = response.text.strip()
