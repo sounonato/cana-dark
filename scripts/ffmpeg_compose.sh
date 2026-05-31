@@ -96,8 +96,8 @@ for i in "${!SCENE_IMAGES[@]}"; do
     dial_dur=$(get_audio_duration "$dial_file")
 
     # Duração = soma dos áudios + 0.5s padding, mínimo 3s
-    scene_dur=$(echo "$narr_dur + $dial_dur + 0.5" | bc)
-    scene_dur=$(echo "if ($scene_dur < $DEFAULT_SCENE_DURATION) $DEFAULT_SCENE_DURATION else $scene_dur" | bc)
+    scene_dur=$(python3 -c "print(float('${narr_dur:-0}') + float('${dial_dur:-0}') + 0.5)")
+    scene_dur=$(python3 -c "print(max(float('${DEFAULT_SCENE_DURATION}'), float('${scene_dur}')))")
 
     # Ken Burns: zoom suave de 1.0 para 1.15 (zoom in) ou 1.15 para 1.0 (zoom out)
     # Alternar entre zoom in e zoom out para variedade
@@ -113,7 +113,7 @@ for i in "${!SCENE_IMAGES[@]}"; do
         Y_EXPR="ih/2-(ih/zoom/2)"
     fi
 
-    TOTAL_FRAMES=$(echo "$scene_dur * $FPS" | bc | cut -d. -f1)
+    TOTAL_FRAMES=$(python3 -c "print(int(float('${scene_dur}') * int('${FPS:-30}')))")
 
     ffmpeg -y -loop 1 -i "$img" \
         -vf "scale=2160:3840,zoompan=z='${ZOOM_EXPR}':x='${X_EXPR}':y='${Y_EXPR}':d=${TOTAL_FRAMES}:s=${WIDTH}x${HEIGHT}:fps=${FPS},format=yuv420p" \
@@ -124,7 +124,7 @@ for i in "${!SCENE_IMAGES[@]}"; do
 
     echo "  ✅ Cena ${scene_num}: ${scene_dur}s (Ken Burns)"
     SCENE_CLIPS+=("$clip_path")
-    TOTAL_DURATION=$(echo "$TOTAL_DURATION + $scene_dur" | bc)
+    TOTAL_DURATION=$(python3 -c "print(float('${TOTAL_DURATION:-0}') + float('${scene_dur}'))")
 done
 
 # ---------------------------------------------------------------------------

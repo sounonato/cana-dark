@@ -47,7 +47,7 @@ async def generate_speech_segment(
         Lista de dicts com timestamps por palavra:
         [{"word": "olá", "start_ms": 0, "end_ms": 350}, ...]
     """
-    communicate = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch)
+    communicate = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch, boundary="WordBoundary")
 
     word_timestamps = []
 
