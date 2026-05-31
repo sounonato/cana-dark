@@ -47,7 +47,7 @@ pip3 --version || sudo apt-get install -y python3-pip
 echo ""
 echo "📚 [4/6] Instalando dependências Python..."
 
-cd /opt/canal-dark
+cd "$(dirname "$0")"
 
 python3 -m venv .venv
 source .venv/bin/activate
