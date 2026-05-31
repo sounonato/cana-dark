@@ -128,13 +128,14 @@ def generate_scene_image(
             try:
                 print(f"    Tentando gerar imagem {scene_index} com Google Imagen 3...")
                 from google import genai
+                from google.genai import types
                 client = genai.Client(api_key=GEMINI_API_KEY)
                 model_name = os.getenv("GEMINI_IMAGE_MODEL", "imagen-3.0-generate-002")
                 
                 result = client.models.generate_images(
                     model=model_name,
                     prompt=prompt,
-                    config=dict(
+                    config=types.GenerateImagesConfig(
                         number_of_images=1,
                         output_mime_type="image/jpeg",
                         aspect_ratio="9:16",
