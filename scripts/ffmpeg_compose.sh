@@ -120,7 +120,7 @@ for i in "${!SCENE_IMAGES[@]}"; do
         -t "$scene_dur" \
         -c:v libx264 -preset fast -crf 23 \
         -an \
-        "$clip_path" 2>/dev/null
+        "$clip_path"
 
     echo "  ✅ Cena ${scene_num}: ${scene_dur}s (Ken Burns)"
     SCENE_CLIPS+=("$clip_path")
@@ -144,7 +144,7 @@ CONCAT_VIDEO="${ASSETS_DIR}/concat_video.mp4"
 ffmpeg -y -f concat -safe 0 -i "$CONCAT_LIST" \
     -c:v libx264 -preset fast -crf 23 \
     -movflags +faststart \
-    "$CONCAT_VIDEO" 2>/dev/null
+    "$CONCAT_VIDEO"
 
 echo "  ✅ Vídeo concatenado: ${TOTAL_DURATION}s"
 
@@ -177,13 +177,13 @@ CONCAT_AUDIO="${ASSETS_DIR}/concat_audio.mp3"
 if [ -s "$AUDIO_CONCAT_LIST" ]; then
     ffmpeg -y -f concat -safe 0 -i "$AUDIO_CONCAT_LIST" \
         -c:a libmp3lame -b:a 192k \
-        "$CONCAT_AUDIO" 2>/dev/null
+        "$CONCAT_AUDIO"
     echo "  ✅ Áudio concatenado"
 else
     echo "  ⚠️  Nenhum áudio encontrado, gerando silêncio"
     ffmpeg -y -f lavfi -i anullsrc=r=44100:cl=stereo \
         -t "$TOTAL_DURATION" -c:a libmp3lame \
-        "$CONCAT_AUDIO" 2>/dev/null
+        "$CONCAT_AUDIO"
 fi
 
 # ---------------------------------------------------------------------------
@@ -235,7 +235,7 @@ ffmpeg -y \
     -r $FPS \
     -movflags +faststart \
     -shortest \
-    "$FINAL_OUTPUT" 2>/dev/null
+    "$FINAL_OUTPUT"
 
 echo ""
 echo "============================================"
